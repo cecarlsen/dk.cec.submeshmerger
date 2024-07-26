@@ -9,3 +9,5 @@ Developed in Unity 2022.3.
 Download the whole repo and put it inside your Packages folder. Access the tool in the top menu under 'Tools/SubmeshMerger'.
 
 ![Splash2](https://github.com/cecarlsen/SubmeshMerger_DEV/blob/main/ReadmeImages/SubmeshMergerSplash.jpg)
+
+*Church model in image above by [Skeiron](https://sketchfab.com/skeiron) (not included in package).*
