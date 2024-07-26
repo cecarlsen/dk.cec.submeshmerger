@@ -1,0 +1,12 @@
+{
+  "name": "dk.cec.submeshmerger",
+  "version": "0.0.1",
+  "displayName": "Submesh Merger",
+  "description": "Simple Unity tool merging meshes and their submeshes into a single mesh with a single submesh.",
+  "author": {
+    "name": "Carl Emil Carlsen",
+    "url": "https://cec.dk"
+  },
+  "unity": "2022.3",
+  "type": "code"
+}

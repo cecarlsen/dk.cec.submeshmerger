@@ -1,0 +1,18 @@
+{
+    "name": "SubmeshMergerEditor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:71eaa6961dccae44e9771add13040cbd"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
