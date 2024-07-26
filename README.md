@@ -7,4 +7,4 @@ Simple unity tool for merging meshes and their submeshes into a single mesh with
 
 Download the whole repo and put it inside your Packages folder. Access the tool in the top menu under 'Tools/SubmeshMerger'.
 
-![Splash2](https://raw.githubusercontent.com/cecarlsen/SubmeshMerger_DEV/master/ReadmeImages/SubmeshMergerSplash.jpg)
+![Splash2](https://github.com/cecarlsen/SubmeshMerger_DEV/blob/main/ReadmeImages/SubmeshMergerSplash.jpg)
