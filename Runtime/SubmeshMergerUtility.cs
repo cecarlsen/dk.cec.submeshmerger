@@ -85,14 +85,14 @@ namespace SubmeshMerger
 
 			RenderTexture workTexture = new RenderTexture( resolution.x, resolution.y, 0 );
 
-			int i = 0;
+			int t = 0;
 			Vector2 gridStep = new Vector2( 1f / gridDimensions.x, 1f / gridDimensions.y );
-			for( int r = 0; r < gridDimensions.x; r++ )
-				for( int c = 0; c < gridDimensions.y; c++ ){
+			for( int r = 0; r < gridDimensions.y; r++ )
+				for( int c = 0; c < gridDimensions.x; c++ ){
 				{
-					if( i < textures.Count ){
+					if( t < textures.Count ){
 						Rect destRect = new Rect( c * gridStep.x, r * gridStep.y, gridStep.x, gridStep.y );
-						Copy( textures[ i++ ], new Rect( 0f, 0f, 1f, 1f ), workTexture, destRect );
+						Copy( textures[ t++ ], new Rect( 0f, 0f, 1f, 1f ), workTexture, destRect );
 					}
 				}
 			}
