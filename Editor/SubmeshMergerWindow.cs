@@ -48,10 +48,11 @@ namespace SubmeshMerger
 			root.style.paddingRight = new StyleLength( windowPadding );
 			root.style.paddingTop = new StyleLength( windowPadding );
 			root.style.paddingBottom = new StyleLength( windowPadding );
-			var objectLabel = new Label("Drop prefab asset here");
+			var objectLabel = new Label("Drop prefab from Project panel here");
 			var objectField = new ObjectField(){
 				name = "modelAssetField",
 				objectType = typeof( GameObject ),
+				allowSceneObjects = false,
 			};
 			var submeshContainer = new VisualElement();
 			submeshContainer.SetEnabled( false );
@@ -174,69 +175,74 @@ namespace SubmeshMerger
 			button.clicked += () =>
 			{
 				if( textureLookup.Count == 0 ){
-					Debug.LogError( "First add a valid object." );
+					Debug.LogError( "First add a valid prefab object." );
 				} else {
 					var go = objectField.value as GameObject;
-					Vector2Int gridDimensions = new Vector2Int( textureColumnsField.value, textureRowsField.value );
-					string assetDatabaseDirectoryPath = Path.GetDirectoryName( AssetDatabase.GetAssetPath( go ) ) + "_Merged";
-					string directoryPath = Directory.GetParent( Application.dataPath ) + "/" + assetDatabaseDirectoryPath;
+					string assetDatabasePath = AssetDatabase.GetAssetPath( go );
+					if( string.IsNullOrEmpty( assetDatabasePath ) ){
+						Debug.LogError( "The object you've added is not a prefab." );
+					} else {
+						Vector2Int gridDimensions = new Vector2Int( textureColumnsField.value, textureRowsField.value );
+						string assetDatabaseDirectoryPath = Path.GetDirectoryName( assetDatabasePath ) + "_Merged";
+						string directoryPath = Directory.GetParent( Application.dataPath ) + "/" + assetDatabaseDirectoryPath;
 
-					// Create directory.
-					if( !Directory.Exists( directoryPath ) ) Directory.CreateDirectory( directoryPath );
+						// Create directory.
+						if( !Directory.Exists( directoryPath ) ) Directory.CreateDirectory( directoryPath );
 
-					// Create and store texture.
-					Vector2Int resolution = new Vector2Int( int.Parse( widthField.value.ToString().Substring( 1 ) ), int.Parse( heightField.value.ToString().Substring( 1 ) ) );
-					var texturePropAndAssetLookup = new List<(string,Texture2D)>();
-					string baseName = go.name + "_Merged";
-					foreach( var data in textureLookup )
-					{
-						var texture = SubmeshMergerUtility.MergeTexturesInGridLayout( resolution, gridDimensions, data.Value );
+						// Create and store texture.
+						Vector2Int resolution = new Vector2Int( int.Parse( widthField.value.ToString().Substring( 1 ) ), int.Parse( heightField.value.ToString().Substring( 1 ) ) );
+						var texturePropAndAssetLookup = new List<(string,Texture2D)>();
+						string baseName = go.name + "_Merged";
+						foreach( var data in textureLookup )
+						{
+							var texture = SubmeshMergerUtility.MergeTexturesInGridLayout( resolution, gridDimensions, data.Value );
 
-						// Store texture.
-						string textureFileName = baseName + data.Key + ".jpg";
-						string textureFilePath = directoryPath + "/" + textureFileName;
-						string textureAssetDatabaseFilePath = assetDatabaseDirectoryPath + "/" + textureFileName;
-						File.WriteAllBytes( textureFilePath, texture.EncodeToJPG( quality: 95 ) );
+							// Store texture.
+							string textureFileName = baseName + data.Key + ".jpg";
+							string textureFilePath = directoryPath + "/" + textureFileName;
+							string textureAssetDatabaseFilePath = assetDatabaseDirectoryPath + "/" + textureFileName;
+							File.WriteAllBytes( textureFilePath, texture.EncodeToJPG( quality: 95 ) );
+							AssetDatabase.Refresh();
+
+							// Change import settings.
+							var textureImporter = (TextureImporter) TextureImporter.GetAtPath( textureAssetDatabaseFilePath );
+							textureImporter.maxTextureSize = Mathf.Max( resolution.x, resolution.y );
+							EditorUtility.SetDirty( textureImporter );
+							textureImporter.SaveAndReimport();
+
+							var textureAsset = AssetDatabase.LoadAssetAtPath<Texture2D>( textureAssetDatabaseFilePath );
+							texturePropAndAssetLookup.Add( ( data.Key, textureAsset ) );
+						}
+						
+						// Create and store mesh.
+						var mesh = SubmeshMergerUtility.MergeMeshesAndSubmeshes( meshFilters, gridDimensions );
+						string meshFileName = baseName + ".asset";
+						string meshAssetDatabaseFilePath = assetDatabaseDirectoryPath + "/" + meshFileName;
+						AssetDatabase.CreateAsset( mesh, meshAssetDatabaseFilePath );
+						var meshAsset = AssetDatabase.LoadAssetAtPath<Mesh>( meshAssetDatabaseFilePath );
+
+						// Create material.
+						Material mergedMaterial = new Material( shader );
+						foreach( var texturePropAsse in texturePropAndAssetLookup ) mergedMaterial.SetTexture( texturePropAsse.Item1, texturePropAsse.Item2 );
+						string materialFileName = baseName + ".mat";
+						string materialAssetDatabaseFilePath = assetDatabaseDirectoryPath + "/" + materialFileName;
+						AssetDatabase.CreateAsset( mergedMaterial, materialAssetDatabaseFilePath );
+						var materialAsset = AssetDatabase.LoadAssetAtPath<Material>( materialAssetDatabaseFilePath ); 
+
+						// Create prefab.
+						GameObject prefab = new GameObject();
+						var meshFilter = prefab.AddComponent<MeshFilter>();
+						var meshRenderer = prefab.AddComponent<MeshRenderer>();
+						meshFilter.sharedMesh = meshAsset;
+						meshRenderer.sharedMaterial = materialAsset;
+						prefab.name = baseName;
+						string prefabFileName = baseName + ".prefab";
+						string prefabAssetDatabaseFilePath = assetDatabaseDirectoryPath + "/" + prefabFileName;
+						PrefabUtility.SaveAsPrefabAssetAndConnect( prefab, prefabAssetDatabaseFilePath, InteractionMode.UserAction );
+
+						// Done.
 						AssetDatabase.Refresh();
-
-						// Change import settings.
-						var textureImporter = (TextureImporter) TextureImporter.GetAtPath( textureAssetDatabaseFilePath );
-						textureImporter.maxTextureSize = Mathf.Max( resolution.x, resolution.y );
-						EditorUtility.SetDirty( textureImporter );
-						textureImporter.SaveAndReimport();
-
-						var textureAsset = AssetDatabase.LoadAssetAtPath<Texture2D>( textureAssetDatabaseFilePath );
-						texturePropAndAssetLookup.Add( ( data.Key, textureAsset ) );
 					}
-					
-					// Create and store mesh.
-					var mesh = SubmeshMergerUtility.MergeMeshesAndSubmeshes( meshFilters, gridDimensions );
-					string meshFileName = baseName + ".asset";
-					string meshAssetDatabaseFilePath = assetDatabaseDirectoryPath + "/" + meshFileName;
-					AssetDatabase.CreateAsset( mesh, meshAssetDatabaseFilePath );
-					var meshAsset = AssetDatabase.LoadAssetAtPath<Mesh>( meshAssetDatabaseFilePath );
-
-					// Create material.
-					Material mergedMaterial = new Material( shader );
-					foreach( var texturePropAsse in texturePropAndAssetLookup ) mergedMaterial.SetTexture( texturePropAsse.Item1, texturePropAsse.Item2 );
-					string materialFileName = baseName + ".mat";
-					string materialAssetDatabaseFilePath = assetDatabaseDirectoryPath + "/" + materialFileName;
-					AssetDatabase.CreateAsset( mergedMaterial, materialAssetDatabaseFilePath );
-					var materialAsset = AssetDatabase.LoadAssetAtPath<Material>( materialAssetDatabaseFilePath ); 
-
-					// Create prefab.
-					GameObject prefab = new GameObject();
-					var meshFilter = prefab.AddComponent<MeshFilter>();
-					var meshRenderer = prefab.AddComponent<MeshRenderer>();
-					meshFilter.sharedMesh = meshAsset;
-					meshRenderer.sharedMaterial = materialAsset;
-					prefab.name = baseName;
-					string prefabFileName = baseName + ".prefab";
-					string prefabAssetDatabaseFilePath = assetDatabaseDirectoryPath + "/" + prefabFileName;
-					PrefabUtility.SaveAsPrefabAssetAndConnect( prefab, prefabAssetDatabaseFilePath, InteractionMode.UserAction );
-
-					// Done.
-					AssetDatabase.Refresh();
 				}
 			};
 		}
